@@ -3,21 +3,25 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
+import { Shield } from 'lucide-react';
 
 export const ActivationCodeGenerator = () => {
-  const { generateActivationCode, schools } = useAppContext();
-  const [activationCodes, setActivationCodes] = useState<string[]>([]);
-
+  const { generateActivationCode, generatedCodes, schools } = useAppContext();
+  
   const handleGenerateCode = () => {
-    const newCode = generateActivationCode();
-    setActivationCodes((prev) => [...prev, newCode]);
+    generateActivationCode();
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>School Activation</CardTitle>
-        <CardDescription>Generate activation codes for new schools</CardDescription>
+        <div className="flex items-center space-x-2">
+          <Shield className="w-5 h-5 text-education-primary" />
+          <div>
+            <CardTitle>School Activation</CardTitle>
+            <CardDescription>Generate activation codes for new schools</CardDescription>
+          </div>
+        </div>
       </CardHeader>
       
       <CardContent className="space-y-4">
@@ -31,16 +35,19 @@ export const ActivationCodeGenerator = () => {
         <div className="space-y-4">
           <h3 className="font-medium">Generated Codes</h3>
           
-          {activationCodes.length > 0 ? (
+          {generatedCodes.length > 0 ? (
             <div className="rounded-md border">
-              <div className="p-2 bg-gray-50 border-b font-medium text-sm">
-                Activation Codes
+              <div className="p-2 bg-gray-50 border-b grid grid-cols-2 font-medium text-sm">
+                <div>Activation Code</div>
+                <div>Status</div>
               </div>
               <ul>
-                {activationCodes.map((code, index) => (
-                  <li key={index} className="p-2 border-b last:border-b-0 flex justify-between">
-                    <span className="font-mono">{code}</span>
-                    <span className="text-sm text-green-600">Active</span>
+                {generatedCodes.map((code, index) => (
+                  <li key={index} className="p-2 border-b last:border-b-0 grid grid-cols-2">
+                    <span className="font-mono">{code.code}</span>
+                    <span className={`text-sm ${code.used ? 'text-red-600' : 'text-green-600'}`}>
+                      {code.used ? 'Used' : 'Available'}
+                    </span>
                   </li>
                 ))}
               </ul>

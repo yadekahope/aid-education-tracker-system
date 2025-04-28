@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { Student, Payment, ClassFee, School, User } from '@/types';
 import { toast } from 'sonner';
@@ -41,6 +40,11 @@ const initialSchools: School[] = [
 // Valid activation codes that can be used for new schools
 const validActivationCodes: string[] = ['SCHOOL001', 'SCHOOL002', 'SCHOOL003'];
 
+interface ActivationCode {
+  code: string;
+  used: boolean;
+}
+
 interface AppContextType {
   students: Student[];
   payments: Payment[];
@@ -59,6 +63,7 @@ interface AppContextType {
   adminLogin: (password: string) => boolean;
   logout: () => void;
   setSplashComplete: (value: boolean) => void;
+  generatedCodes: ActivationCode[];
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -71,10 +76,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [splashComplete, setSplashComplete] = useState(false);
+  const [generatedCodes, setGeneratedCodes] = useState<ActivationCode[]>([]);
 
   // Generate a new activation code for a school
   const generateActivationCode = (): string => {
     const code = `SCHOOL${Math.floor(1000 + Math.random() * 9000)}`;
+    setGeneratedCodes(prev => [...prev, { code, used: false }]);
     toast.success(`Generated activation code: ${code}`);
     return code;
   };
@@ -176,20 +183,21 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Register a new school
+  // Register a new school with validation for activation code
   const registerSchool = (
     schoolData: Omit<School, 'activationCode'>,
     activationCode: string
   ): boolean => {
-    // Check if activation code is valid
-    if (!validActivationCodes.includes(activationCode) && activationCode !== 'DEMO123') {
-      toast.error('Invalid activation code');
-      return false;
-    }
-
     // Check if school name already exists
     if (schools.some((s) => s.name === schoolData.name)) {
       toast.error('School name already registered');
+      return false;
+    }
+
+    // Find the activation code
+    const codeIndex = generatedCodes.findIndex(c => c.code === activationCode);
+    if (codeIndex === -1 || generatedCodes[codeIndex].used) {
+      toast.error('Invalid or already used activation code');
       return false;
     }
 
@@ -199,6 +207,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...schoolData,
         activationCode,
       };
+      
+      // Mark the code as used
+      setGeneratedCodes(prev => prev.map((code, index) => 
+        index === codeIndex ? { ...code, used: true } : code
+      ));
+      
       setSchools((prev) => [...prev, newSchool]);
       toast.success(`School ${newSchool.name} registered successfully`);
       return true;
@@ -264,6 +278,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     adminLogin,
     logout,
     setSplashComplete,
+    generatedCodes,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
