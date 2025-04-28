@@ -230,7 +230,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   // Login as admin (system)
   const adminLogin = (password: string): boolean => {
     // For demo purposes, use a simple admin password
-    if (password === 'admin123') {
+    if (password === 'aideducation123') {
       setUser({ type: 'admin' });
       toast.success('Welcome, System Administrator');
       return true;
