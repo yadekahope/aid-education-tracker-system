@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -104,7 +103,6 @@ export const LoginForm = () => {
                       required 
                       placeholder="Enter admin password"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">For demo: aideducation123</p>
                   </div>
                 </CardContent>
                 <CardFooter>

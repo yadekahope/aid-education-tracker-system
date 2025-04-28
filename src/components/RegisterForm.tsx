@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -179,7 +178,6 @@ export const RegisterForm = () => {
                   className={errors.activationCode ? 'border-red-500' : ''}
                 />
                 {errors.activationCode && <p className="text-xs text-red-500">{errors.activationCode}</p>}
-                <p className="text-xs text-muted-foreground mt-1">For demo, use: DEMO123</p>
               </div>
             </CardContent>
             
