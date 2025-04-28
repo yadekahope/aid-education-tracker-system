@@ -6,10 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
+import { useNavigate } from 'react-router-dom';
 
 export const LoginForm = () => {
   const { login, adminLogin } = useAppContext();
   const [activeTab, setActiveTab] = useState('school');
+  const navigate = useNavigate();
   
   // School login state
   const [schoolName, setSchoolName] = useState('');
@@ -20,12 +22,18 @@ export const LoginForm = () => {
 
   const handleSchoolLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    login(schoolName, schoolPassword);
+    const success = login(schoolName, schoolPassword);
+    if (success) {
+      navigate('/dashboard');
+    }
   };
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    adminLogin(adminPassword);
+    const success = adminLogin(adminPassword);
+    if (success) {
+      navigate('/admin');
+    }
   };
 
   return (
@@ -96,7 +104,7 @@ export const LoginForm = () => {
                       required 
                       placeholder="Enter admin password"
                     />
-                    <p className="text-xs text-muted-foreground mt-1">For demo: admin123</p>
+                    <p className="text-xs text-muted-foreground mt-1">For demo: aideducation123</p>
                   </div>
                 </CardContent>
                 <CardFooter>

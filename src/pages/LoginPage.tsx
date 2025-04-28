@@ -7,7 +7,11 @@ const LoginPage = () => {
   const { user } = useAppContext();
 
   if (user) {
-    return <Navigate to="/dashboard" />;
+    return user.type === 'admin' ? (
+      <Navigate to="/admin" />
+    ) : (
+      <Navigate to="/dashboard" />
+    );
   }
 
   return <LoginForm />;
