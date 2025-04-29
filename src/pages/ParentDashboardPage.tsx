@@ -23,7 +23,7 @@ const ParentDashboardPage = () => {
       try {
         const { data, error } = await supabase
           .from('schools')
-          .select('name, address, email, phone, password, activationCode');
+          .select('name, address, email, phone, password, activationCode, paystackPublicKey');
           
         if (error) throw error;
         
@@ -36,7 +36,8 @@ const ParentDashboardPage = () => {
             phone: school.phone,
             password: school.password,
             activationCode: school.activationCode,
-            paystackPublicKey: school.paystackPublicKey
+            // Only add paystackPublicKey if it exists
+            ...(school.paystackPublicKey && { paystackPublicKey: school.paystackPublicKey })
           }));
           
           setSchools(formattedSchools);
