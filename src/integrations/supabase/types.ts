@@ -9,7 +9,169 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      activation_codes: {
+        Row: {
+          code: string
+          used: boolean
+        }
+        Insert: {
+          code: string
+          used?: boolean
+        }
+        Update: {
+          code?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
+      class_fees: {
+        Row: {
+          fee: number
+          id: string
+          name: string
+          school_name: string
+        }
+        Insert: {
+          fee: number
+          id?: string
+          name: string
+          school_name: string
+        }
+        Update: {
+          fee?: number
+          id?: string
+          name?: string
+          school_name?: string
+        }
+        Relationships: []
+      }
+      parents: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          password: string
+          phone: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          password: string
+          phone: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          password?: string
+          phone?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          date: string
+          id: string
+          school_name: string
+          student_id: string | null
+        }
+        Insert: {
+          amount: number
+          date?: string
+          id: string
+          school_name: string
+          student_id?: string | null
+        }
+        Update: {
+          amount?: number
+          date?: string
+          id?: string
+          school_name?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          activation_code: string
+          address: string
+          email: string
+          name: string
+          password: string
+          paystack_public_key: string | null
+          phone: string
+        }
+        Insert: {
+          activation_code: string
+          address: string
+          email: string
+          name: string
+          password: string
+          paystack_public_key?: string | null
+          phone: string
+        }
+        Update: {
+          activation_code?: string
+          address?: string
+          email?: string
+          name?: string
+          password?: string
+          paystack_public_key?: string | null
+          phone?: string
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          amount_paid: number
+          class: string
+          id: string
+          name: string
+          parent_id: string | null
+          school_name: string
+          total_fee: number
+        }
+        Insert: {
+          amount_paid?: number
+          class: string
+          id: string
+          name: string
+          parent_id?: string | null
+          school_name: string
+          total_fee: number
+        }
+        Update: {
+          amount_paid?: number
+          class?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          school_name?: string
+          total_fee?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "parents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
