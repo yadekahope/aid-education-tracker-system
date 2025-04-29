@@ -20,7 +20,7 @@ interface AppContextType {
   splashComplete: boolean;
   theme: string;
   toggleTheme: () => void;
-  setUser: (user: User | null) => void; // Add setUser to the interface
+  setUser: (user: User | null) => void;
   generateActivationCode: () => Promise<string>;
   addStudent: (student: Omit<Student, 'id'>) => Promise<void>;
   recordPayment: (payment: Omit<Payment, 'id' | 'date'>) => Promise<void>;
@@ -115,7 +115,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         .from('activation_codes')
         .insert([{ code, used: false }]);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
       
       setGeneratedCodes(prev => [...prev, { code, used: false }]);
       
@@ -440,7 +443,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     classes,
     schools,
     user,
-    setUser, // Add setUser to the context value
+    setUser,
     isLoading,
     splashComplete,
     theme,

@@ -3,13 +3,21 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAppContext } from '@/context/AppContext';
-import { Shield } from 'lucide-react';
+import { Shield, Loader2 } from 'lucide-react';
 
 export const ActivationCodeGenerator = () => {
   const { generateActivationCode, generatedCodes, schools } = useAppContext();
+  const [isGenerating, setIsGenerating] = useState(false);
   
-  const handleGenerateCode = () => {
-    generateActivationCode();
+  const handleGenerateCode = async () => {
+    setIsGenerating(true);
+    try {
+      await generateActivationCode();
+    } catch (error) {
+      console.error('Error during code generation:', error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -28,8 +36,16 @@ export const ActivationCodeGenerator = () => {
         <Button 
           onClick={handleGenerateCode}
           className="w-full bg-education-primary hover:bg-education-secondary"
+          disabled={isGenerating}
         >
-          Generate New Activation Code
+          {isGenerating ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating...
+            </>
+          ) : (
+            'Generate New Activation Code'
+          )}
         </Button>
         
         <div className="space-y-4">
