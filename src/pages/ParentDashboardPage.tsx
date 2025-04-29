@@ -23,13 +23,24 @@ const ParentDashboardPage = () => {
       try {
         const { data, error } = await supabase
           .from('schools')
-          .select('name, address, email, phone');
+          .select('name, address, email, phone, password, activationCode');
           
         if (error) throw error;
         
         if (data) {
-          setSchools(data);
-          setFilteredSchools(data);
+          // Convert the data to match our School type
+          const formattedSchools: School[] = data.map(school => ({
+            name: school.name,
+            address: school.address,
+            email: school.email,
+            phone: school.phone,
+            password: school.password,
+            activationCode: school.activationCode,
+            paystackPublicKey: school.paystackPublicKey
+          }));
+          
+          setSchools(formattedSchools);
+          setFilteredSchools(formattedSchools);
         }
       } catch (error) {
         console.error('Error fetching schools:', error);
