@@ -26,9 +26,19 @@ export interface School {
   phone: string;
   password: string;
   activationCode: string;
+  paystackPublicKey?: string;
+}
+
+export interface Parent {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  password: string;
 }
 
 export interface User {
-  type: 'admin' | 'administrator';
+  type: 'admin' | 'administrator' | 'parent';
   schoolName?: string;
+  parentId?: string;
 }

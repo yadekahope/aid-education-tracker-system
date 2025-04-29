@@ -27,9 +27,9 @@ export const Layout: React.FC<LayoutProps> = ({
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-education-background">
+    <div className="flex flex-col min-h-screen bg-education-background dark:bg-gray-950">
       <Header />
-      <main className="flex-1 container mx-auto px-4 py-6">
+      <main className="flex-1 container mx-auto px-4 py-6 dark:text-gray-100">
         {children}
       </main>
       <Footer />

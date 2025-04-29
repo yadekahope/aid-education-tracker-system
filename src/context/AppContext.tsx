@@ -1,44 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Student, Payment, ClassFee, School, User } from '@/types';
 import { toast } from 'sonner';
-
-// Sample initial data
-const initialClasses: ClassFee[] = [
-  { name: 'Class 1', fee: 1000 },
-  { name: 'Class 2', fee: 1200 },
-  { name: 'Class 3', fee: 1500 },
-  { name: 'Class 4', fee: 1800 },
-  { name: 'Class 5', fee: 2000 },
-];
-
-const initialStudents: Student[] = [
-  { id: 'STD001', name: 'John Doe', class: 'Class 1', totalFee: 1000, amountPaid: 500 },
-  { id: 'STD002', name: 'Jane Smith', class: 'Class 2', totalFee: 1200, amountPaid: 600 },
-  { id: 'STD003', name: 'Michael Johnson', class: 'Class 3', totalFee: 1500, amountPaid: 1500 },
-  { id: 'STD004', name: 'Sarah Williams', class: 'Class 4', totalFee: 1800, amountPaid: 900 },
-  { id: 'STD005', name: 'David Brown', class: 'Class 5', totalFee: 2000, amountPaid: 0 },
-];
-
-const initialPayments: Payment[] = [
-  { id: 'PAY001', studentId: 'STD001', amount: 500, date: '2025-03-15' },
-  { id: 'PAY002', studentId: 'STD002', amount: 600, date: '2025-03-18' },
-  { id: 'PAY003', studentId: 'STD003', amount: 1500, date: '2025-03-20' },
-  { id: 'PAY004', studentId: 'STD004', amount: 900, date: '2025-03-22' },
-];
-
-const initialSchools: School[] = [
-  {
-    name: 'Demo School',
-    address: '123 Education St',
-    email: 'demo@school.edu',
-    phone: '123-456-7890',
-    password: 'password123',
-    activationCode: 'DEMO123',
-  }
-];
-
-// Valid activation codes that can be used for new schools
-const validActivationCodes: string[] = ['SCHOOL001', 'SCHOOL002', 'SCHOOL003'];
+import { supabase } from '@/lib/supabase';
+import { useTheme } from '@/hooks/useTheme';
 
 interface ActivationCode {
   code: string;
@@ -53,14 +17,17 @@ interface AppContextType {
   user: User | null;
   isLoading: boolean;
   splashComplete: boolean;
-  generateActivationCode: () => string;
-  addStudent: (student: Omit<Student, 'id'>) => void;
-  recordPayment: (payment: Omit<Payment, 'id' | 'date'>) => void;
+  theme: string;
+  toggleTheme: () => void;
+  generateActivationCode: () => Promise<string>;
+  addStudent: (student: Omit<Student, 'id'>) => Promise<void>;
+  recordPayment: (payment: Omit<Payment, 'id' | 'date'>) => Promise<void>;
   getUnpaidStudents: (classFilter?: string, idFilter?: string) => Student[];
-  addClass: (classData: ClassFee) => void;
-  registerSchool: (school: Omit<School, 'activationCode'>, activationCode: string) => boolean;
-  login: (schoolName: string, password: string) => boolean;
-  adminLogin: (password: string) => boolean;
+  addClass: (classData: ClassFee) => Promise<void>;
+  updateClass: (oldName: string, newName: string, fee: number) => Promise<void>;
+  registerSchool: (school: Omit<School, 'activationCode'>, activationCode: string) => Promise<boolean>;
+  login: (schoolName: string, password: string) => Promise<boolean>;
+  adminLogin: (password: string) => Promise<boolean>;
   logout: () => void;
   setSplashComplete: (value: boolean) => void;
   generatedCodes: ActivationCode[];
@@ -69,32 +36,119 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [students, setStudents] = useState<Student[]>(initialStudents);
-  const [payments, setPayments] = useState<Payment[]>(initialPayments);
-  const [classes, setClasses] = useState<ClassFee[]>(initialClasses);
-  const [schools, setSchools] = useState<School[]>(initialSchools);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [classes, setClasses] = useState<ClassFee[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [splashComplete, setSplashComplete] = useState(false);
   const [generatedCodes, setGeneratedCodes] = useState<ActivationCode[]>([]);
+  const { theme, setTheme } = useTheme();
 
-  // Generate a new activation code for a school
-  const generateActivationCode = (): string => {
-    const code = `SCHOOL${Math.floor(1000 + Math.random() * 9000)}`;
-    setGeneratedCodes(prev => [...prev, { code, used: false }]);
-    toast.success(`Generated activation code: ${code}`);
-    return code;
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      
+      try {
+        const { data: schoolsData, error: schoolsError } = await supabase
+          .from('schools')
+          .select('*');
+          
+        if (schoolsError) throw schoolsError;
+        if (schoolsData) setSchools(schoolsData);
+        
+        const { data: codesData, error: codesError } = await supabase
+          .from('activation_codes')
+          .select('*');
+          
+        if (codesError) throw codesError;
+        if (codesData) setGeneratedCodes(codesData.map(code => ({ code: code.code, used: code.used })));
+
+        if (user && user.type === 'administrator') {
+          const { data: classesData, error: classesError } = await supabase
+            .from('class_fees')
+            .select('*')
+            .eq('school_name', user.schoolName);
+            
+          if (classesError) throw classesError;
+          if (classesData) setClasses(classesData.map(c => ({ name: c.name, fee: c.fee })));
+          
+          const { data: studentsData, error: studentsError } = await supabase
+            .from('students')
+            .select('*')
+            .eq('school_name', user.schoolName);
+            
+          if (studentsError) throw studentsError;
+          if (studentsData) setStudents(studentsData);
+          
+          const { data: paymentsData, error: paymentsError } = await supabase
+            .from('payments')
+            .select('*')
+            .eq('school_name', user.schoolName);
+            
+          if (paymentsError) throw paymentsError;
+          if (paymentsData) setPayments(paymentsData);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Failed to load data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [user]);
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
-  // Add a new student
-  const addStudent = (studentData: Omit<Student, 'id'>) => {
+  const generateActivationCode = async (): Promise<string> => {
+    try {
+      const code = `SCHOOL${Math.floor(1000 + Math.random() * 9000)}`;
+      
+      const { error } = await supabase
+        .from('activation_codes')
+        .insert([{ code, used: false }]);
+        
+      if (error) throw error;
+      
+      setGeneratedCodes(prev => [...prev, { code, used: false }]);
+      
+      toast.success(`Generated activation code: ${code}`);
+      return code;
+    } catch (error) {
+      console.error('Error generating code:', error);
+      toast.error('Failed to generate activation code');
+      return '';
+    }
+  };
+
+  const addStudent = async (studentData: Omit<Student, 'id'>) => {
+    if (!user || user.type !== 'administrator') {
+      toast.error('Unauthorized access');
+      return;
+    }
+    
     try {
       setIsLoading(true);
+      
       const newId = `STD${String(students.length + 1).padStart(3, '0')}`;
       const newStudent: Student = {
         id: newId,
-        ...studentData,
+        ...studentData
       };
+      
+      const studentWithSchool = { ...newStudent, school_name: user.schoolName };
+      
+      const { error } = await supabase
+        .from('students')
+        .insert([studentWithSchool]);
+        
+      if (error) throw error;
+      
       setStudents((prev) => [...prev, newStudent]);
       toast.success(`Student ${newStudent.name} added successfully`);
     } catch (error) {
@@ -105,8 +159,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Record a payment
-  const recordPayment = (paymentData: Omit<Payment, 'id' | 'date'>) => {
+  const recordPayment = async (paymentData: Omit<Payment, 'id' | 'date'>) => {
+    if (!user || user.type !== 'administrator') {
+      toast.error('Unauthorized access');
+      return;
+    }
+    
     try {
       setIsLoading(true);
       const student = students.find((s) => s.id === paymentData.studentId);
@@ -122,10 +180,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         ...paymentData,
         date: new Date().toISOString().split('T')[0],
       };
+      
+      const paymentWithSchool = { ...newPayment, school_name: user.schoolName };
+      
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert([paymentWithSchool]);
+        
+      if (paymentError) throw paymentError;
 
+      const { error: studentError } = await supabase
+        .from('students')
+        .update({ amountPaid: student.amountPaid + paymentData.amount })
+        .eq('id', student.id)
+        .eq('school_name', user.schoolName);
+        
+      if (studentError) throw studentError;
+      
       setPayments((prev) => [...prev, newPayment]);
-
-      // Update the student's amount paid
       setStudents((prev) =>
         prev.map((s) =>
           s.id === paymentData.studentId
@@ -143,7 +215,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Get unpaid students with optional filters
   const getUnpaidStudents = (classFilter?: string, idFilter?: string) => {
     let filteredStudents = students.filter((student) => student.amountPaid < student.totalFee);
 
@@ -158,23 +229,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return filteredStudents;
   };
 
-  // Add a new class with fee
-  const addClass = (classData: ClassFee) => {
+  const addClass = async (classData: ClassFee) => {
+    if (!user || user.type !== 'administrator') {
+      toast.error('Unauthorized access');
+      return;
+    }
+    
     try {
       setIsLoading(true);
       
-      // Check if class already exists
       if (classes.some((c) => c.name === classData.name)) {
-        // Update existing class
-        setClasses((prev) =>
-          prev.map((c) => (c.name === classData.name ? { ...c, fee: classData.fee } : c))
-        );
-        toast.success(`Class ${classData.name} updated successfully`);
-      } else {
-        // Add new class
-        setClasses((prev) => [...prev, classData]);
-        toast.success(`Class ${classData.name} added successfully`);
+        return updateClass(classData.name, classData.name, classData.fee);
       }
+      
+      const classWithSchool = { ...classData, school_name: user.schoolName };
+      
+      const { error } = await supabase
+        .from('class_fees')
+        .insert([classWithSchool]);
+        
+      if (error) throw error;
+      
+      setClasses((prev) => [...prev, classData]);
+      toast.success(`Class ${classData.name} added successfully`);
     } catch (error) {
       toast.error('Failed to add class');
       console.error(error);
@@ -183,37 +260,110 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Register a new school with validation for activation code
-  const registerSchool = (
-    schoolData: Omit<School, 'activationCode'>,
-    activationCode: string
-  ): boolean => {
-    // Check if school name already exists
-    if (schools.some((s) => s.name === schoolData.name)) {
-      toast.error('School name already registered');
-      return false;
+  const updateClass = async (oldName: string, newName: string, fee: number) => {
+    if (!user || user.type !== 'administrator') {
+      toast.error('Unauthorized access');
+      return;
     }
-
-    // Find the activation code
-    const codeIndex = generatedCodes.findIndex(c => c.code === activationCode);
-    if (codeIndex === -1 || generatedCodes[codeIndex].used) {
-      toast.error('Invalid or already used activation code');
-      return false;
-    }
-
+    
     try {
       setIsLoading(true);
+      
+      const { error } = await supabase
+        .from('class_fees')
+        .update({ name: newName, fee })
+        .eq('name', oldName)
+        .eq('school_name', user.schoolName);
+        
+      if (error) throw error;
+      
+      setClasses((prev) =>
+        prev.map((c) => (c.name === oldName ? { name: newName, fee } : c))
+      );
+      
+      if (oldName !== newName) {
+        const { error: studentError } = await supabase
+          .from('students')
+          .update({ class: newName })
+          .eq('class', oldName)
+          .eq('school_name', user.schoolName);
+          
+        if (studentError) throw studentError;
+        
+        setStudents((prev) =>
+          prev.map((s) => (s.class === oldName ? { ...s, class: newName } : s))
+        );
+      }
+      
+      toast.success(`Class ${oldName} updated successfully`);
+    } catch (error) {
+      toast.error('Failed to update class');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const registerSchool = async (
+    schoolData: Omit<School, 'activationCode'>,
+    activationCode: string
+  ): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      
+      const { data: existingSchool, error: checkError } = await supabase
+        .from('schools')
+        .select('name')
+        .eq('name', schoolData.name)
+        .single();
+        
+      if (checkError && checkError.code !== 'PGRST116') throw checkError;
+      if (existingSchool) {
+        toast.error('School name already registered');
+        return false;
+      }
+      
+      const { data: codeData, error: codeError } = await supabase
+        .from('activation_codes')
+        .select('*')
+        .eq('code', activationCode)
+        .single();
+        
+      if (codeError) {
+        toast.error('Invalid activation code');
+        return false;
+      }
+      
+      if (codeData.used) {
+        toast.error('Activation code already used');
+        return false;
+      }
+      
       const newSchool: School = {
         ...schoolData,
         activationCode,
       };
       
-      // Mark the code as used
-      setGeneratedCodes(prev => prev.map((code, index) => 
-        index === codeIndex ? { ...code, used: true } : code
-      ));
+      const { error: insertError } = await supabase
+        .from('schools')
+        .insert([newSchool]);
+        
+      if (insertError) throw insertError;
+      
+      const { error: updateError } = await supabase
+        .from('activation_codes')
+        .update({ used: true })
+        .eq('code', activationCode);
+        
+      if (updateError) throw updateError;
       
       setSchools((prev) => [...prev, newSchool]);
+      setGeneratedCodes((prev) => 
+        prev.map((code) => 
+          code.code === activationCode ? { ...code, used: true } : code
+        )
+      );
+      
       toast.success(`School ${newSchool.name} registered successfully`);
       return true;
     } catch (error) {
@@ -225,38 +375,60 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
-  // Login as administrator (school)
-  const login = (schoolName: string, password: string): boolean => {
-    const school = schools.find(
-      (s) => s.name === schoolName && s.password === password
-    );
-
-    if (school) {
-      setUser({ type: 'administrator', schoolName: school.name });
-      toast.success(`Welcome, ${school.name} Administrator`);
+  const login = async (schoolName: string, password: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from('schools')
+        .select('*')
+        .eq('name', schoolName)
+        .eq('password', password)
+        .single();
+        
+      if (error || !data) {
+        toast.error('Invalid school name or password');
+        return false;
+      }
+      
+      setUser({ type: 'administrator', schoolName: data.name });
+      toast.success(`Welcome, ${data.name} Administrator`);
       return true;
-    } else {
-      toast.error('Invalid school name or password');
+    } catch (error) {
+      toast.error('Login failed');
+      console.error(error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Login as admin (system)
-  const adminLogin = (password: string): boolean => {
-    // For demo purposes, use a simple admin password
-    if (password === 'aideducation123') {
-      setUser({ type: 'admin' });
-      toast.success('Welcome, System Administrator');
-      return true;
-    } else {
-      toast.error('Invalid admin password');
+  const adminLogin = async (password: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      
+      if (password === 'aideducation123') {
+        setUser({ type: 'admin' });
+        toast.success('Welcome, System Administrator');
+        return true;
+      } else {
+        toast.error('Invalid admin password');
+        return false;
+      }
+    } catch (error) {
+      toast.error('Login failed');
+      console.error(error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Logout
   const logout = () => {
     setUser(null);
+    setClasses([]);
+    setStudents([]);
+    setPayments([]);
     toast.success('Logged out successfully');
   };
 
@@ -268,11 +440,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     user,
     isLoading,
     splashComplete,
+    theme,
+    toggleTheme,
     generateActivationCode,
     addStudent,
     recordPayment,
     getUnpaidStudents,
     addClass,
+    updateClass,
     registerSchool,
     login,
     adminLogin,

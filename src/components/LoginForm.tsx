@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,17 +20,17 @@ export const LoginForm = () => {
   // Admin login state
   const [adminPassword, setAdminPassword] = useState('');
 
-  const handleSchoolLogin = (e: React.FormEvent) => {
+  const handleSchoolLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = login(schoolName, schoolPassword);
+    const success = await login(schoolName, schoolPassword);
     if (success) {
       navigate('/dashboard');
     }
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = adminLogin(adminPassword);
+    const success = await adminLogin(adminPassword);
     if (success) {
       navigate('/admin');
     }
@@ -52,9 +53,10 @@ export const LoginForm = () => {
           </CardHeader>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="school">School Admin</TabsTrigger>
               <TabsTrigger value="admin">System Admin</TabsTrigger>
+              <TabsTrigger value="parent">Parent</TabsTrigger>
             </TabsList>
             
             <TabsContent value="school">
@@ -112,6 +114,21 @@ export const LoginForm = () => {
                 </CardFooter>
               </form>
             </TabsContent>
+
+            <TabsContent value="parent">
+              <form onSubmit={(e) => { e.preventDefault(); navigate('/parent-login'); }}>
+                <CardContent className="space-y-4 pt-6">
+                  <div className="text-center">
+                    <p>Access the parent portal to make payments for your child</p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" className="w-full bg-education-primary hover:bg-education-secondary">
+                    Go to Parent Portal
+                  </Button>
+                </CardFooter>
+              </form>
+            </TabsContent>
           </Tabs>
         </Card>
         
@@ -119,6 +136,11 @@ export const LoginForm = () => {
           <a href="/register" className="text-sm text-education-accent hover:underline">
             New school? Register here
           </a>
+          <div className="mt-2">
+            <a href="/parent-register" className="text-sm text-education-accent hover:underline">
+              Parent? Create an account
+            </a>
+          </div>
         </div>
       </div>
     </div>
