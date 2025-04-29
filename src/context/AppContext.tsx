@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Student, Payment, ClassFee, School, User } from '@/types';
 import { toast } from 'sonner';
@@ -19,6 +20,7 @@ interface AppContextType {
   splashComplete: boolean;
   theme: string;
   toggleTheme: () => void;
+  setUser: (user: User | null) => void; // Add setUser to the interface
   generateActivationCode: () => Promise<string>;
   addStudent: (student: Omit<Student, 'id'>) => Promise<void>;
   recordPayment: (payment: Omit<Payment, 'id' | 'date'>) => Promise<void>;
@@ -438,6 +440,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     classes,
     schools,
     user,
+    setUser, // Add setUser to the context value
     isLoading,
     splashComplete,
     theme,
